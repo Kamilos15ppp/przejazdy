@@ -9,7 +9,7 @@ use App\Exception\StorageException;
 use PDO;
 use Throwable;
 
-class RideModel extends AbstractModel implements ModelInterface
+class RideModel extends RideAbstractModel implements RideModelInterface
 {
     public function list(
         int $pageNumber,
@@ -47,8 +47,11 @@ class RideModel extends AbstractModel implements ModelInterface
     public function count(): int
     {
         try {
-            // $username zamiast tabeli
-            $query = "SELECT count(*) AS cn FROM test";
+            $username = '';
+            if(!empty($_SESSION)) {
+                $username = $_SESSION['username'];
+            }
+            $query = "SELECT count(*) AS cn FROM $username";
             $result = $this->connection->query($query);
             $result = $result->fetch(PDO::FETCH_ASSOC);
             if ($result === false) {
@@ -64,8 +67,11 @@ class RideModel extends AbstractModel implements ModelInterface
     public function get(int $id): array
     {
         try {
-            // $username zamiast tabeli
-            $query = "SELECT * FROM test WHERE id = $id";
+            $username = '';
+            if(!empty($_SESSION)) {
+                $username = $_SESSION['username'];
+            }
+            $query = "SELECT * FROM $username WHERE id = $id";
             $result = $this->connection->query($query);
             $ride = $result->fetch(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
@@ -89,9 +95,13 @@ class RideModel extends AbstractModel implements ModelInterface
             $last = $this->connection->quote($data['last']);
             $created = $this->connection->quote(date('Y-m-d H:i:s'));
 
-            //$username zamiast tabeli
+            $username = '';
+            if(!empty($_SESSION)) {
+                $username = $_SESSION['username'];
+            }
+
             $query = "
-                INSERT INTO test(tabor, line, direction, first, last, created)
+                INSERT INTO $username(tabor, line, direction, first, last, created)
                 VALUES($tabor, $line, $direction, $first, $last, $created)
             ";
 
@@ -111,9 +121,13 @@ class RideModel extends AbstractModel implements ModelInterface
             $last = $this->connection->quote($data['last']);
             $updated = $this->connection->quote(date('Y-m-d H:i:s'));
 
-            // $username zamiast tabeli
+            $username = '';
+            if(!empty($_SESSION)) {
+                $username = $_SESSION['username'];
+            }
+
             $query = "
-                UPDATE test
+                UPDATE $username
                 SET tabor = $tabor,
                     line = $line,
                     direction = $direction,
@@ -132,8 +146,11 @@ class RideModel extends AbstractModel implements ModelInterface
     public function delete(int $id): void
     {
         try {
-            // $username zamiast tabeli
-            $query = "DELETE FROM test WHERE id = $id";
+            $username = '';
+            if(!empty($_SESSION)) {
+                $username = $_SESSION['username'];
+            }
+            $query = "DELETE FROM $username WHERE id = $id";
             $this->connection->exec($query);
         } catch (Throwable $e) {
             throw new StorageException('Nie udało się usunąć przejazdu', 400, $e);
@@ -150,6 +167,7 @@ class RideModel extends AbstractModel implements ModelInterface
         try {
             $limit = $pageSize;
             $offset = ($pageNumber - 1) * $pageSize;
+            $username = '';
 
             if (!in_array($sortBy, ['created', 'tabor'])) {
                 $sortBy = 'created';
@@ -159,9 +177,13 @@ class RideModel extends AbstractModel implements ModelInterface
                 $sortOrder = 'desc';
             }
 
+            if(!empty($_SESSION)) {
+                $username = $_SESSION['username'];
+            }
+
             $query = "
                 SELECT id, tabor, line, direction, first, last, created 
-                FROM test 
+                FROM $username 
                 ORDER BY $sortBy $sortOrder
                 LIMIT $offset, $limit    
             ";

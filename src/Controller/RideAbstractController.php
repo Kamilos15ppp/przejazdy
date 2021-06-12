@@ -8,16 +8,18 @@ use App\Exception\ConfigurationException;
 use App\Exception\NotFoundException;
 use App\Exception\StorageException;
 use App\Model\RideModel;
+use App\Model\UserModel;
 use App\Request;
 use App\View;
 
-abstract class AbstractRidesController
+abstract class RideAbstractController
 {
     private const DEFAULT_ACTION = 'list';
 
     private static array $configuration = [];
 
     protected RideModel $rideModel;
+    protected UserModel $userModel;
     protected Request $request;
     protected View $view;
 
@@ -32,7 +34,8 @@ abstract class AbstractRidesController
             throw new ConfigurationException('Configuration error');
         }
 
-        $this->database = new RideModel(self::$configuration['db']);
+        $this->rideModel = new RideModel(self::$configuration['db']);
+        $this->userModel = new UserModel(self::$configuration['db']);
         $this->request = $request;
         $this->view = new View();
     }

@@ -4,11 +4,69 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Exception\AppException;
 use App\Exception\NotFoundException;
+use Throwable;
 
-class RidesController extends AbstractRidesController
+class RideController extends RideAbstractController
 {
     private const PAGE_SIZE = 10;
+
+    public function loginAction(): void
+    {
+        try {
+            if ($this->request->isPost()) {
+                $username = trim($this->request->postParam('username'));
+                $password = trim($this->request->postParam('password'));
+
+                if (!empty($username) && !empty($password)) {
+                    $user =  $this->userModel->get($username);
+                    if (password_verify($password, $user['password'])) {
+                        $_SESSION['loggedin'] = true;
+                        $_SESSION['username'] = $user['username'];
+                        $_SESSION['userRole'] = $user['userRole'];
+                        $this->redirect('/', []);
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            throw new AppException('Nie udało się zalogować', 400, $e);
+        }
+        $this->view->render('login');
+    }
+
+    public function logoutAction(): void
+    {
+        unset($_SESSION);
+        session_destroy();
+        $this->view->render('login');
+    }
+
+    public function registerAction(): void
+    {
+        if ($this->request->isPost()) {
+            $username = trim($this->request->postParam('username'));
+            $usernameSafe = htmlentities(trim($this->request->postParam('username')));
+            $password = trim($this->request->postParam('password'));
+            $userRole = 'user';
+            if (
+                !empty($username)
+                && !empty($password)
+                && preg_match('/^[a-zA-Z0-9_]+$/', $username)
+                && strlen($password) >= 6
+            ) {
+                $userData = [
+                    'username' => $username,
+                    'usernameSafe' => $usernameSafe,
+                    'password' => $password,
+                    'userRole' => $userRole
+                ];
+                $this->userModel->createUser($userData);
+                $this->redirect('/?action=login', []);
+            }
+        }
+        $this->view->render('register');
+    }
 
     public function createAction(): void
     {
@@ -33,7 +91,7 @@ class RidesController extends AbstractRidesController
                     'first' => $first,
                     'last' => $last
                 ];
-                $this->database->create($rideData);
+                $this->rideModel->create($rideData);
                 $this->redirect('/', ['before' => 'created']);
                 exit;
             } else {
@@ -61,8 +119,8 @@ class RidesController extends AbstractRidesController
             $pageSize = self::PAGE_SIZE;
         }
 
-        $ride = $this->database->list($pageNumber, $pageSize, $sortBy, $sortOrder);
-        $rides = $this->database->count();
+        $ride = $this->rideModel->list($pageNumber, $pageSize, $sortBy, $sortOrder);
+        $rides = $this->rideModel->count();
 
         $this->view->render(
             'list',
@@ -104,7 +162,7 @@ class RidesController extends AbstractRidesController
                     'first' => $first,
                     'last' => $last
                 ];
-                $this->database->edit($rideId, $rideData);
+                $this->rideModel->edit($rideId, $rideData);
                 $this->redirect('/', ['before' => 'edited']);
             } else {
                 $this->redirect('/', ['action' => 'show', 'id' => (string) $rideId, 'error' => 'emptyValue']);
@@ -118,7 +176,7 @@ class RidesController extends AbstractRidesController
     {
         if ($this->request->isPost()) {
             $id = (int) $this->request->postParam('id');
-            $this->database->delete($id);
+            $this->rideModel->delete($id);
             $this->redirect('/', ['before' => 'deleted']);
         }
 
@@ -133,7 +191,7 @@ class RidesController extends AbstractRidesController
         }
 
         try {
-            $ride = $this->database->get($rideId);
+            $ride = $this->rideModel->get($rideId);
         } catch (NotFoundException $e) {
             $this->redirect('/', ['error' => 'rideNotFound']);
         }
@@ -143,16 +201,16 @@ class RidesController extends AbstractRidesController
 
     public function listBusAction(): void
     {
-        $this->view->render('list_bus', ['vehicles' => $this->database->listVehicles('bus')]);
+        $this->view->render('list_bus', ['vehicles' => $this->rideModel->listVehicles('bus')]);
     }
 
     public function listTramAction(): void
     {
-        $this->view->render('list_tram', ['vehicles' => $this->database->listVehicles('tram')]);
+        $this->view->render('list_tram', ['vehicles' => $this->rideModel->listVehicles('tram')]);
     }
 
     public function listRelicAction(): void
     {
-        $this->view->render('list_relic', ['vehicles' => $this->database->listVehicles('relic')]);
+        $this->view->render('list_relic', ['vehicles' => $this->rideModel->listVehicles('relic')]);
     }
 }

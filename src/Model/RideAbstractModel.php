@@ -9,7 +9,7 @@ use App\Exception\StorageException;
 use PDO;
 use PDOException;
 
-abstract class AbstractModel
+abstract class RideAbstractModel
 {
     protected PDO $connection;
 
